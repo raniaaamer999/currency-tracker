@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>💱 Currency Tracker</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f7f2;
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #fff;
+      border-bottom: 1px solid #bbddc8;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: #16A34A;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .logo-text h1 { font-size: 18px; font-weight: 600; color: #052e16; }
+    .logo-text p { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    .revolut-badge {
+      background: #dcfce7;
+      color: #052e16;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 14px;
+      border-radius: 20px;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+
+    @media (max-width: 768px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #bbddc8;
+      border-radius: 14px;
+      padding: 22px;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .card-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .stat-card {
+      border-radius: 12px;
+      padding: 18px;
+      border: 1px solid #bbddc8;
+    }
+    .stat-card.white { background: #fff; }
+    .stat-card.green { background: #16A34A; border-color: #15803d; }
+    .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.7px; }
+    .stat-card.white .stat-label { color: #6b7280; }
+    .stat-card.green .stat-label { color: #bbf7d0; }
+    .stat-value { font-size: 24px; font-weight: 600; margin-top: 6px; }
+    .stat-card.white .stat-value { color: #052e16; }
+    .stat-card.green .stat-value { color: #fff; font-size: 18px; }
+    .stat-sub { font-size: 12px; margin-top: 4px; }
+    .stat-card.white .stat-sub { color: #6b7280; }
+    .stat-card.green .stat-sub { color: #bbf7d0; }
+
+    select, input {
+      background: #f0f7f2;
+      border: 1px solid #bbddc8;
+      border-radius: 8px;
+      color: #1a1a1a;
+      padding: 8px 12px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    select:focus, input:focus { border-color: #16A34A; }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-primary { background: #16A34A; color: #fff; }
+    .btn-primary:hover { background: #15803d; }
+    .btn-ghost { background: #f0f7f2; color: #16A34A; border: 1px solid #86efac; }
+    .btn-ghost:hover { background: #dcfce7; }
+    .btn-danger { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
+    .btn-danger:hover { background: #fee2e2; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+    .rates-table { width: 100%; border-collapse: collapse; }
+    .rates-table th {
+      text-align: left;
+      font-size: 11px;
+      color: #6b7280;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      padding: 7px 0;
+      border-bottom: 1px solid #e0f0e8;
+    }
+    .rates-table td {
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f7f2;
+      font-size: 14px;
+    }
+    .rates-table tr:last-child td { border-bottom: none; }
+    .currency-code { font-weight: 600; color: #16A34A; font-size: 14px; }
+    .currency-name { color: #6b7280; font-size: 11px; margin-top: 2px; }
+    .rate-value { font-weight: 600; color: #052e16; font-size: 14px; }
+
+    .status { font-size: 13px; padding: 8px 12px; border-radius: 8px; margin-top: 10px; }
+    .status.loading { background: #f0f7f2; color: #16A34A; }
+    .status.error { background: #fef2f2; color: #dc2626; }
+    .status.success { background: #f0fdf4; color: #15803d; }
+
+    .spinner {
+      display: inline-block; width: 13px; height: 13px;
+      border: 2px solid #bbddc8; border-top-color: #16A34A;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .alert-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .alert-form .full { grid-column: 1 / -1; }
+
+    .alert-item {
+      background: #f9fcfa;
+      border: 1px solid #bbddc8;
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 9px;
+    }
+    .alert-item.triggered { background: #f0fdf4; border-color: #86efac; }
+    .alert-pair { font-weight: 600; color: #16A34A; font-size: 14px; }
+    .alert-details { font-size: 12px; color: #6b7280; margin-top: 3px; }
+    .badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+    .badge-pending { background: #dcfce7; color: #15803d; }
+    .badge-triggered { background: #bbf7d0; color: #052e16; }
+
+    .chart-controls { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+    .chart-wrap { position: relative; height: 220px; }
+
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #fff; border: 1px solid #86efac;
+      border-radius: 12px; padding: 14px 18px;
+      font-size: 13px; color: #052e16; max-width: 340px;
+      box-shadow: 0 4px 20px rgba(22,163,74,0.15);
+      transform: translateY(100px); opacity: 0;
+      transition: all 0.3s ease; z-index: 999;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+
+    label { font-size: 12px; color: #6b7280; display: block; margin-bottom: 4px; }
+    .section-gap { margin-top: 20px; }
+    .flex-gap { display: flex; gap: 8px; align-items: center; }
+    .empty { color: #9ca3af; font-size: 13px; text-align: center; padding: 20px 0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">💱</div>
+    <div class="logo-text">
+      <h1>Currency Tracker</h1>
+      <p>Live exchange rates · Alerts · History</p>
+    </div>
+  </div>
+  <div class="revolut-badge">Built for Revolut Portfolio</div>
+</header>
+
+<div class="container">
+
+  <div class="grid-3" style="margin-bottom: 20px;">
+    <div class="stat-card white">
+      <div class="stat-label">Base Currency</div>
+      <div class="stat-value" id="stat-base">USD</div>
+      <div class="stat-sub">Currently tracking</div>
+    </div>
+    <div class="stat-card white">
+      <div class="stat-label">Rates Loaded</div>
+      <div class="stat-value" id="stat-count">—</div>
+      <div class="stat-sub">Target currencies</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Last Updated</div>
+      <div class="stat-value" id="stat-date">—</div>
+      <div class="stat-sub">ECB / Frankfurter API</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Live Exchange Rates</span>
+        <button class="btn btn-primary" onclick="fetchRates()">↻ Refresh</button>
+      </div>
+      <div>
+        <label>Base currency</label>
+        <select id="base-currency" onchange="fetchRates()" style="width:100%;">
+          {% for code, name in currencies.items() %}
+          <option value="{{ code }}" {% if code == 'USD' %}selected{% endif %}>{{ code }} — {{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div id="rates-status"></div>
+      <table class="rates-table" id="rates-table" style="margin-top:16px; display:none;">
+        <thead><tr><th>Currency</th><th style="text-align:right;">Rate</th></tr></thead>
+        <tbody id="rates-body"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Rate Alerts</span>
+        <button class="btn btn-ghost" onclick="checkAlerts()">⚡ Check Now</button>
+      </div>
+      <div class="alert-form">
+        <div>
+          <label>Base</label>
+          <select id="alert-base" style="width:100%;">
+            {% for code, name in currencies.items() %}
+            <option value="{{ code }}" {% if code == 'USD' %}selected{% endif %}>{{ code }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Target</label>
+          <select id="alert-target" style="width:100%;">
+            {% for code, name in currencies.items() %}
+            <option value="{{ code }}" {% if code == 'EUR' %}selected{% endif %}>{{ code }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Target Rate</label>
+          <input type="number" id="alert-rate" placeholder="e.g. 0.95" step="0.0001" style="width:100%;"/>
+        </div>
+        <div>
+          <label>Direction</label>
+          <select id="alert-direction" style="width:100%;">
+            <option value="above">Goes Above ↑</option>
+            <option value="below">Goes Below ↓</option>
+          </select>
+        </div>
+        <div class="full">
+          <button class="btn btn-primary" style="width:100%" onclick="addAlert()">+ Set Alert</button>
+        </div>
+      </div>
+      <div class="section-gap">
+        <div id="alerts-list"><div class="empty">No alerts yet.</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="card" style="margin-top: 20px;">
+    <div class="card-header">
+      <span class="card-title">Rate History — Last 30 Days</span>
+    </div>
+    <div class="chart-controls">
+      <div>
+        <label>Base</label>
+        <select id="hist-base">
+          {% for code, name in currencies.items() %}
+          <option value="{{ code }}" {% if code == 'USD' %}selected{% endif %}>{{ code }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>Target</label>
+        <select id="hist-target">
+          {% for code, name in currencies.items() %}
+          <option value="{{ code }}" {% if code == 'EUR' %}selected{% endif %}>{{ code }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="fetchHistory()">Load Chart</button>
+      <div id="hist-status"></div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="rateChart"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+  let rateChart = null;
+  const CURRENCY_NAMES = {{ currencies | tojson }};
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 4000);
+  }
+
+  function setStatus(id, msg, type) {
+    const el = document.getElementById(id);
+    if (!msg) { el.innerHTML = ''; return; }
+    el.innerHTML = `<div class="status ${type}">${type === 'loading' ? '<span class="spinner"></span>' : ''}${msg}</div>`;
+  }
+
+  async function fetchRates() {
+    const base = document.getElementById('base-currency').value;
+    document.getElementById('stat-base').textContent = base;
+    setStatus('rates-status', 'Fetching live rates…', 'loading');
+    document.getElementById('rates-table').style.display = 'none';
+    try {
+      const res = await fetch(`/api/rates?base=${base}`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      const tbody = document.getElementById('rates-body');
+      tbody.innerHTML = '';
+      const entries = Object.entries(data.rates).sort((a, b) => a[0].localeCompare(b[0]));
+      entries.forEach(([code, rate]) => {
+        const name = CURRENCY_NAMES[code] || code;
+        const rateStr = rate >= 100 ? rate.toFixed(2) : rate.toFixed(4);
+        tbody.innerHTML += `
+          <tr>
+            <td><div class="currency-code">${code}</div><div class="currency-name">${name}</div></td>
+            <td style="text-align:right;"><div class="rate-value">${rateStr}</div></td>
+          </tr>`;
+      });
+      document.getElementById('rates-table').style.display = 'table';
+      document.getElementById('stat-count').textContent = entries.length;
+      document.getElementById('stat-date').textContent = data.date;
+      setStatus('rates-status', '', '');
+    } catch (e) {
+      setStatus('rates-status', `Error: ${e.message}`, 'error');
+    }
+  }
+
+  async function fetchHistory() {
+    const base = document.getElementById('hist-base').value;
+    const target = document.getElementById('hist-target').value;
+    setStatus('hist-status', 'Loading…', 'loading');
+    try {
+      const res = await fetch(`/api/history?base=${base}&target=${target}`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      const labels = data.history.map(h => h.rate_date);
+      const rates  = data.history.map(h => h.rate);
+      if (rateChart) rateChart.destroy();
+      const ctx = document.getElementById('rateChart').getContext('2d');
+      rateChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: `${base}/${target}`,
+            data: rates,
+            borderColor: '#16A34A',
+            backgroundColor: 'rgba(22,163,74,0.08)',
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: '#16A34A',
+            fill: true,
+            tension: 0.3,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#6b7280', font: { size: 12 } } },
+            tooltip: { backgroundColor: '#fff', titleColor: '#16A34A', bodyColor: '#052e16', borderColor: '#bbddc8', borderWidth: 1 }
+          },
+          scales: {
+            x: { ticks: { color: '#9ca3af', maxTicksLimit: 8 }, grid: { color: '#f0f7f2' } },
+            y: { ticks: { color: '#9ca3af' }, grid: { color: '#e0f0e8' } }
+          }
+        }
+      });
+      setStatus('hist-status', `${data.history.length} data points loaded`, 'success');
+    } catch (e) {
+      setStatus('hist-status', `Error: ${e.message}`, 'error');
+    }
+  }
+
+  async function loadAlerts() {
+    const res = await fetch('/api/alerts');
+    const data = await res.json();
+    const container = document.getElementById('alerts-list');
+    if (!data.alerts.length) {
+      container.innerHTML = '<div class="empty">No alerts yet.</div>';
+      return;
+    }
+    container.innerHTML = data.alerts.map(a => `
+      <div class="alert-item ${a.triggered ? 'triggered' : ''}">
+        <div>
+          <div class="alert-pair">${a.base}/${a.target}</div>
+          <div class="alert-details">
+            ${a.direction === 'above' ? '↑ Above' : '↓ Below'} ${a.target_rate.toFixed(4)}
+            ${a.triggered ? ` · Hit ${a.triggered_rate.toFixed(4)}` : ''}
+          </div>
+        </div>
+        <div class="flex-gap">
+          <span class="badge ${a.triggered ? 'badge-triggered' : 'badge-pending'}">
+            ${a.triggered ? '✓ triggered' : '⏳ pending'}
+          </span>
+          <button class="btn btn-danger btn-sm" onclick="deleteAlert(${a.id})">✕</button>
+        </div>
+      </div>`).join('');
+  }
+
+  async function addAlert() {
+    const base      = document.getElementById('alert-base').value;
+    const target    = document.getElementById('alert-target').value;
+    const rate      = parseFloat(document.getElementById('alert-rate').value);
+    const direction = document.getElementById('alert-direction').value;
+    if (!rate || isNaN(rate)) { showToast('⚠️ Please enter a valid target rate'); return; }
+    if (base === target) { showToast('⚠️ Base and target must be different'); return; }
+    const res = await fetch('/api/alerts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base, target, target_rate: rate, direction })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`🔔 Alert set: ${base}/${target} ${direction} ${rate}`);
+      document.getElementById('alert-rate').value = '';
+      loadAlerts();
+    }
+  }
+
+  async function deleteAlert(id) {
+    await fetch(`/api/alerts/${id}`, { method: 'DELETE' });
+    loadAlerts();
+  }
+
+  async function checkAlerts() {
+    showToast('⚡ Checking alerts against live rates…');
+    const res = await fetch('/api/alerts/check', { method: 'POST' });
+    const data = await res.json();
+    if (data.fired.length > 0) {
+      data.fired.forEach(f => showToast(`🔔 ${f.summary}`));
+    } else {
+      showToast('✓ No alerts triggered right now');
+    }
+    loadAlerts();
+  }
+
+  fetchRates();
+  loadAlerts();
+</script>
+</body>
+</html>
